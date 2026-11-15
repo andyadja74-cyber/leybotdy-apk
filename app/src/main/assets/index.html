@@ -67,6 +67,11 @@
           <div class="keep-model"><span>✓</span> Le modèle IA téléchargé sera conservé.</div>
           <button class="danger-btn" id="openCleanup">Nettoyer la mémoire <span>↗</span></button>
         </div>
+        <div class="settings-card glass"><div class="settings-icon">⇄</div><div class="settings-copy"><h3>Modèle Gemma</h3><p>Choisir un autre fichier .gguf.</p></div><button class="mini" id="chgModel">Changer</button></div>
+        <div class="settings-card glass"><div class="settings-icon">⏻</div><div class="settings-copy"><h3>Moteur IA</h3><p>Décharger Gemma pour libérer la RAM.</p></div><button class="mini" id="unloadBtn">Décharger</button></div>
+        <div class="settings-card glass"><div class="settings-icon">≡</div><div class="settings-copy"><h3>Longueur des réponses</h3><p>Maximum de tokens par réponse.</p></div><select class="mini" id="maxTok"><option>128</option><option>256</option><option>512</option><option>1024</option></select></div>
+        <div class="settings-card glass"><div class="settings-icon">🔊</div><div class="settings-copy"><h3>Lecture à voix haute</h3><p>Lire chaque réponse automatiquement (hors ligne).</p></div><select class="mini" id="autoRead"><option value="0">Non</option><option value="1">Oui</option></select></div>
+        <div class="settings-card glass"><div class="settings-icon">🗣</div><div class="settings-copy"><h3>Voix française</h3><p>Installer ou choisir la voix du téléphone.</p></div><button class="mini" id="voiceBtn">Voix</button></div>
         <div class="privacy-note">Le nettoyage des données de cette interface ne vide pas toute la RAM Android. Le moteur IA devra être arrêté ou déchargé séparément pour libérer sa mémoire de travail.</div>
       </section>
     </main>
