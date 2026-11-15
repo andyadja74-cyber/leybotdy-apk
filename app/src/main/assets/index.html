@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090a0f">
+  <meta name="description" content="LEYBOTDY — L’intelligence à portée de main.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>LEYBOTDY — L'intelligence à portée de main</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+  <div class="app-shell">
+    <aside class="sidebar glass" id="sidebar">
+      <div class="brand-row"><div class="brand-mark">L</div><div><div class="brand-name">LEYBOTDY</div><div class="brand-sub">L'intelligence à portée de main.</div></div></div>
+      <button class="new-chat" id="newChat"><span>＋</span> Nouvelle discussion</button>
+      <div class="side-label">ESPACE</div>
+      <button class="side-link active" data-view="chat"><span>◈</span> Assistant</button>
+      <button class="side-link" data-view="settings"><span>⚙</span> Paramètres</button>
+      <div class="side-label history-label">RÉCENT</div>
+      <div class="history-list" id="historyList"><div class="empty-history">Aucune discussion récente</div></div>
+      <div class="sidebar-bottom"><span class="status-dot"></span><span>Mode local prêt à configurer</span></div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <button class="icon-btn mobile-menu" id="menuToggle" aria-label="Ouvrir le menu">☰</button>
+        <div class="top-title"> <span class="tiny-mark">L</span> LEYBOTDY</div>
+        <button class="icon-btn" id="openSettings" aria-label="Paramètres">⚙</button>
+      </header>
+
+      <section class="chat-view" id="chatView">
+        <div class="welcome" id="welcome">
+          <div class="welcome-orb"><span>✧</span></div>
+          <div class="eyebrow">VOTRE ASSISTANT</div>
+          <h1>Que pouvons-nous<br><span>imaginer aujourd'hui ?</span></h1>
+          <p>L'intelligence à portée de main.</p>
+          <div class="suggestions">
+            <button class="suggestion" data-prompt="Aide-moi à trouver une idée créative."><span>✦</span><b>Trouver une idée</b><small>Explorer de nouvelles possibilités</small></button>
+            <button class="suggestion" data-prompt="Aide-moi à apprendre quelque chose de nouveau."><span>⌘</span><b>Apprendre</b><small>Comprendre simplement un sujet</small></button>
+            <button class="suggestion" data-prompt="Aide-moi à écrire un texte."><span>✎</span><b>Écrire</b><small>Donner forme à mes idées</small></button>
+            <button class="suggestion" data-prompt="Aide-moi à programmer un projet."><span>〈/〉</span><b>Programmer</b><small>Construire pas à pas</small></button>
+          </div>
+        </div>
+        <div class="messages" id="messages" aria-live="polite"></div>
+        <form class="composer glass" id="composer">
+          <textarea id="messageInput" rows="1" placeholder="Écrivez à LEYBOTDY..." aria-label="Votre message"></textarea>
+          <div class="composer-bottom"><span class="local-hint"><i></i> Vos conversations restent sur cet appareil</span><button class="send-btn" type="submit" aria-label="Envoyer">↑</button></div>
+        </form>
+        <div class="disclaimer">LEYBOTDY peut se tromper. Vérifiez les informations importantes.</div>
+      </section>
+
+      <section class="settings-view hidden" id="settingsView">
+        <div class="settings-heading"><div class="eyebrow">PERSONNALISATION</div><h1>Paramètres</h1><p>Gérez votre expérience LEYBOTDY.</p></div>
+        <div class="settings-card glass"><div class="settings-icon">◐</div><div class="settings-copy"><h3>Apparence</h3><p>Interface sombre avec effet Liquid Glass.</p></div><span class="setting-value">Sombre</span></div>
+        <div class="settings-card glass"><div class="settings-icon">◎</div><div class="settings-copy"><h3>Mode de fonctionnement</h3><p>Le moteur IA local sera configuré dans une prochaine étape.</p></div><span class="setting-value pending">À configurer</span></div>
+        <div class="cleanup-card glass"><div class="cleanup-top"><div class="cleanup-icon">✧</div><div><h2>Nettoyage de la mémoire</h2><p>Gérez les données locales et réinitialisez votre espace de discussion.</p></div></div>
+          <div class="cleanup-item"><div><b>Historiques des discussions</b><small>Messages et conversations enregistrés</small></div><span class="pill">Effaçable</span></div>
+          <div class="cleanup-item"><div><b>Mémoire locale de l'assistant</b><small>Préférences et informations mémorisées par l'application</small></div><span class="pill">Effaçable</span></div>
+          <div class="cleanup-item"><div><b>Cache de l'application</b><small>Données temporaires stockées par cette interface</small></div><span class="pill green">Nettoyable</span></div>
+          <div class="keep-model"><span>✓</span> Le modèle IA téléchargé sera conservé.</div>
+          <button class="danger-btn" id="openCleanup">Nettoyer la mémoire <span>↗</span></button>
+        </div>
+        <div class="privacy-note">Le nettoyage des données de cette interface ne vide pas toute la RAM Android. Le moteur IA devra être arrêté ou déchargé séparément pour libérer sa mémoire de travail.</div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop hidden" id="cleanupModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal glass"><div class="modal-symbol">!</div><h2 id="modalTitle">Confirmer le nettoyage ?</h2><p>Cette action supprimera définitivement les conversations et la mémoire locale de LEYBOTDY ainsi que le cache de cette interface.</p>
+      <label class="check-row"><input type="checkbox" id="deleteHistory" checked><span>Supprimer les historiques</span></label>
+      <label class="check-row"><input type="checkbox" id="deleteMemory" checked><span>Effacer la mémoire locale</span></label>
+      <label class="check-row"><input type="checkbox" id="deleteCache" checked><span>Effacer le cache de l'interface</span></label>
+      <div class="model-preserved">Le modèle Gemma téléchargé ne sera pas supprimé.</div>
+      <div class="modal-actions"><button class="cancel-btn" id="cancelCleanup">Annuler</button><button class="confirm-btn" id="confirmCleanup">Confirmer le nettoyage</button></div>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
