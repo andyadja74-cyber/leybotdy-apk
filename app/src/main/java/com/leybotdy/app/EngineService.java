@@ -7,7 +7,7 @@ import java.io.*;
 
 public class EngineService extends Service {
     static volatile String status = "none";
-    static volatile Process proc;
+    static volatile java.lang.Process proc;
     static final StringBuilder log = new StringBuilder();
 
     @Override public IBinder onBind(Intent i) { return null; }
@@ -36,7 +36,7 @@ public class EngineService extends Service {
                 ProcessBuilder pb = new ProcessBuilder(bin, "-m", model, "--host", "127.0.0.1",
                         "--port", "8080", "-c", "2048", "-t", "4");
                 pb.redirectErrorStream(true);
-                Process me = pb.start();
+                java.lang.Process me = pb.start();
                 proc = me;
                 BufferedReader r = new BufferedReader(new InputStreamReader(me.getInputStream()));
                 String l;
@@ -51,7 +51,7 @@ public class EngineService extends Service {
         }).start();
     }
 
-    static void stop() { Process p = proc; proc = null; status = "none"; if (p != null) p.destroy(); }
+    static void stop() { java.lang.Process p = proc; proc = null; status = "none"; if (p != null) p.destroy(); }
 
     @Override public void onDestroy() { stop(); super.onDestroy(); }
 }
