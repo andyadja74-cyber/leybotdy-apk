@@ -1,4 +1,8 @@
 const $ = (id) => document.getElementById(id);
+let histQ='',renaming=null;
+const A=window.Android;
+window.addEventListener('error',e=>{try{showToast('Erreur : '+e.message)}catch(_){}});
+window.addEventListener('unhandledrejection',e=>{try{showToast('Erreur : '+((e.reason&&e.reason.message)||e.reason))}catch(_){}});
 const STORAGE = { chats: 'leybotdy_chats_v1', memory: 'leybotdy_memory_v1', cache: 'leybotdy_ui_cache_v1' };
 let chats = load(STORAGE.chats, []);
 let currentChat = null;
@@ -55,7 +59,6 @@ $('confirmCleanup').onclick=()=>{
   $('cleanupModal').classList.add('hidden');showToast(removed.length?'Nettoyage effectué : '+removed.join(', ')+'.':'Aucun élément sélectionné.');
 };
 renderHistory();
-const A=window.Android;
 function md(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/```(?:\w*\n)?([\s\S]*?)(```|$)/g,'<pre>$1</pre>').replace(/`([^`\n]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/^[-*] (.+)$/gm,'• $1');}
 function renderMessages(){const host=$('messages');host.innerHTML='';(currentChat?.messages||[]).forEach(m=>{const d=document.createElement('div');d.className='message '+m.role;
   if(m.role==='user'){d.textContent=m.text;}else{const c=document.createElement('div');c.innerHTML=md(m.text);d.appendChild(c);
@@ -107,7 +110,6 @@ msc.addEventListener('scroll',()=>tbtn.classList.toggle('hidden',msc.scrollHeigh
 tbtn.onclick=()=>msc.scrollTo({top:msc.scrollHeight,behavior:'smooth'});
 const PERSONAS={prof:'Explique comme un professeur patient, avec des mots simples et un exemple.',redac:'Réponds comme un rédacteur : texte soigné et bien tourné.',prog:'Réponds comme un développeur expert : code court et clair, explication brève.',court:'Réponds en deux phrases maximum.'};
 function personaText(){return PERSONAS[localStorage.getItem('leybotdy_persona')]||'';}
-let histQ='',renaming=null;
 function renderHistory(){const h=$('historyList');h.innerHTML='';const q=histQ.trim().toLowerCase();
   const list=chats.filter(c=>!q||(c.title||'').toLowerCase().includes(q)||c.messages.some(m=>m.text.toLowerCase().includes(q))).sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0));
   if(!list.length){h.innerHTML='<div class="empty-history">'+(q?'Aucun résultat':'Aucune discussion récente')+'</div>';return;}
