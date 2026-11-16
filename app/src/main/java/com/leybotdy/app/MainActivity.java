@@ -114,12 +114,24 @@ public class MainActivity extends Activity {
                 catch (Exception e) { startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS)); }
             });
         }
+        @JavascriptInterface public void share(String t) {
+            runOnUiThread(() -> {
+                Intent i = new Intent(Intent.ACTION_SEND);
+                i.setType("text/plain");
+                i.putExtra(Intent.EXTRA_TEXT, t);
+                startActivity(Intent.createChooser(i, "Partager"));
+            });
+        }
         @JavascriptInterface public void copy(String t) {
             runOnUiThread(() -> {
                 ((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("t", t));
                 toast("Copié");
             });
         }
+    }
+
+    @Override public void onBackPressed() {
+        web.evaluateJavascript("window.goBack?goBack():false", v -> { if (!"true".equals(v)) moveTaskToBack(true); });
     }
 
     void toast(String m) { runOnUiThread(() -> Toast.makeText(this, m, Toast.LENGTH_LONG).show()); }

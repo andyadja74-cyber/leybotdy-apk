@@ -24,6 +24,7 @@
       <button class="side-link active" data-view="chat"><span>◈</span> Assistant</button>
       <button class="side-link" data-view="settings"><span>⚙</span> Paramètres</button>
       <div class="side-label history-label">RÉCENT</div>
+      <input class="hist-search" id="histSearch" placeholder="🔍 Rechercher…" autocomplete="off">
       <div class="history-list" id="historyList"><div class="empty-history">Aucune discussion récente</div></div>
       <div class="sidebar-bottom"><span class="status-dot"></span><span>Mode local prêt à configurer</span></div>
     </aside>
@@ -49,6 +50,8 @@
           </div>
         </div>
         <div class="messages" id="messages" aria-live="polite"></div>
+        <button class="to-bottom hidden" id="toBottom" aria-label="Aller en bas">↓</button>
+        <div class="chips hidden" id="chips"><button data-q="Résume ta dernière réponse en 2 phrases.">Résume</button><button data-q="Explique plus simplement.">Plus simple</button><button data-q="Continue.">Continue</button><button data-q="Reformule en plus court.">Plus court</button><button data-q="Traduis ta dernière réponse en anglais.">Traduis</button></div>
         <form class="composer glass" id="composer">
           <textarea id="messageInput" rows="1" placeholder="Écrivez à LEYBOTDY..." aria-label="Votre message"></textarea>
           <div class="composer-bottom"><span class="local-hint"><i></i> Vos conversations restent sur cet appareil</span><button class="send-btn" type="submit" aria-label="Envoyer">↑</button></div>
@@ -57,6 +60,7 @@
       </section>
 
       <section class="settings-view hidden" id="settingsView">
+        <button class="back-btn" id="backHome">‹ Retour à l’accueil</button>
         <div class="settings-heading"><div class="eyebrow">PERSONNALISATION</div><h1>Paramètres</h1><p>Gérez votre expérience LEYBOTDY.</p></div>
         <div class="settings-card glass"><div class="settings-icon">◐</div><div class="settings-copy"><h3>Apparence</h3><p>Interface sombre avec effet Liquid Glass.</p></div><span class="setting-value">Sombre</span></div>
         <div class="settings-card glass"><div class="settings-icon">◎</div><div class="settings-copy"><h3>Mode de fonctionnement</h3><p>Le moteur IA local sera configuré dans une prochaine étape.</p></div><span class="setting-value pending">À configurer</span></div>
@@ -72,6 +76,9 @@
         <div class="settings-card glass"><div class="settings-icon">≡</div><div class="settings-copy"><h3>Longueur des réponses</h3><p>Maximum de tokens par réponse.</p></div><select class="mini" id="maxTok"><option>128</option><option>256</option><option>512</option><option>1024</option></select></div>
         <div class="settings-card glass"><div class="settings-icon">🔊</div><div class="settings-copy"><h3>Lecture à voix haute</h3><p>Lire chaque réponse automatiquement (hors ligne).</p></div><select class="mini" id="autoRead"><option value="0">Non</option><option value="1">Oui</option></select></div>
         <div class="settings-card glass"><div class="settings-icon">🗣</div><div class="settings-copy"><h3>Voix française</h3><p>Installer ou choisir la voix du téléphone.</p></div><button class="mini" id="voiceBtn">Voix</button></div>
+        <div class="settings-card glass"><div class="settings-icon">🎭</div><div class="settings-copy"><h3>Personnalité</h3><p>Le style des réponses de Gemma.</p></div><select class="mini" id="personaSel"><option value="">Normal</option><option value="prof">Prof</option><option value="redac">Rédacteur</option><option value="prog">Programmeur</option><option value="court">Concis</option></select></div>
+        <div class="settings-card glass"><div class="settings-icon">◐</div><div class="settings-copy"><h3>Thème</h3><p>Sombre ou clair.</p></div><select class="mini" id="themeSel"><option value="dark">Sombre</option><option value="light">Clair</option></select></div>
+        <div class="settings-card glass"><div class="settings-icon">⇪</div><div class="settings-copy"><h3>Exporter</h3><p>Partager la discussion en cours.</p></div><button class="mini" id="exportBtn">Partager</button></div>
         <div class="privacy-note">Le nettoyage des données de cette interface ne vide pas toute la RAM Android. Le moteur IA devra être arrêté ou déchargé séparément pour libérer sa mémoire de travail.</div>
       </section>
     </main>

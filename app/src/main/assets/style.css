@@ -21,3 +21,50 @@
 .bar i{display:block;height:100%;width:0;border-radius:9px;background:linear-gradient(90deg,#6aa7ff,#a77bff);transition:width .3s}
 .boot pre{width:100%;max-height:28vh;overflow:auto;margin:0;font-size:11px;text-align:left;white-space:pre-wrap;opacity:.8}
 .boot-btn{padding:12px 24px;border-radius:16px;font-size:15px}
+
+/* --- Liquid glass lumineux, coins arrondis, navigation --- */
+.glass,.message,.suggestion,.settings-card,.cleanup-card,.history-entry,.cleanup-item{background-image:linear-gradient(160deg,rgba(255,255,255,.17) 0%,rgba(255,255,255,.04) 40%,rgba(255,255,255,.02) 62%,rgba(140,160,255,.12) 100%)!important;border:1px solid rgba(255,255,255,.24)!important;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.55),inset 0 -1px 0 rgba(255,255,255,.08),0 10px 28px rgba(0,0,0,.35),0 0 22px rgba(110,130,255,.2)!important}
+.glass{border-radius:30px!important;-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%)}
+.sidebar.glass{border-radius:0 32px 32px 0!important}
+.message{border-radius:26px!important}
+.message.user{background-image:linear-gradient(135deg,rgba(106,167,255,.42),rgba(167,123,255,.32))!important}
+.composer{border-radius:34px!important}
+.composer:focus-within{box-shadow:inset 0 1.5px 0 rgba(255,255,255,.6),0 0 0 1px rgba(140,160,255,.55),0 0 34px rgba(120,140,255,.45)!important}
+.suggestion,.settings-card,.cleanup-card{border-radius:26px!important}
+.history-entry,.cleanup-item,.new-chat,.side-link{border-radius:20px!important}
+.icon-btn{border-radius:22px!important;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.5),0 0 18px rgba(110,130,255,.3)}
+.send-btn{border-radius:50%!important;box-shadow:0 0 22px rgba(150,170,255,.65),inset 0 1.5px 0 #fff}
+.top-title{text-shadow:0 0 14px rgba(130,160,255,.8)}
+.welcome-orb{box-shadow:0 0 50px rgba(130,150,255,.55),inset 0 2px 0 rgba(255,255,255,.6)}
+.msg-foot button,.hist-del,.mini{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.back-btn{align-self:flex-start;margin:0 0 14px;padding:11px 20px;border-radius:22px;color:#fff;font-size:15px;border:1px solid rgba(255,255,255,.26);background:linear-gradient(145deg,rgba(255,255,255,.22),rgba(255,255,255,.05));box-shadow:inset 0 1.5px 0 rgba(255,255,255,.5),0 0 20px rgba(110,130,255,.3)}
+.to-bottom{position:fixed;right:22px;bottom:158px;z-index:20;width:46px;height:46px;border-radius:50%;color:#fff;font-size:20px;border:1px solid rgba(255,255,255,.3);background:linear-gradient(145deg,rgba(255,255,255,.3),rgba(255,255,255,.06));box-shadow:inset 0 1.5px 0 rgba(255,255,255,.6),0 0 24px rgba(130,150,255,.5)}
+.to-bottom.hidden{display:none}
+.chat-view:not(.hidden),.settings-view:not(.hidden){animation:vIn .28s ease}
+@keyframes vIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.sidebar{transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+button{transition:transform .12s ease,filter .12s ease;-webkit-tap-highlight-color:transparent}
+button:active{transform:scale(.95);filter:brightness(1.25)}
+
+/* --- Fluidité --- */
+.message{content-visibility:auto;contain-intrinsic-size:auto 110px}
+.messages{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+button,input,textarea,select{touch-action:manipulation}
+.sidebar{will-change:transform}
+.ambient{animation:none!important}
+/* --- Recherche, renommer, épingler, phrases rapides --- */
+.hist-search,.hist-edit{width:100%;box-sizing:border-box;padding:11px 16px;margin:6px 0 10px;border-radius:20px;color:#fff;font-size:14px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.07);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.35);outline:none}
+.hist-edit{margin:0}
+.hist-del.armed{width:auto;padding:0 12px;border-radius:16px;background:rgba(255,90,110,.35)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips.hidden{display:none}
+.chips button{flex:none;padding:9px 16px;border-radius:20px;color:#fff;font-size:13px;border:1px solid rgba(255,255,255,.24);background:linear-gradient(145deg,rgba(255,255,255,.2),rgba(255,255,255,.05));box-shadow:inset 0 1.5px 0 rgba(255,255,255,.5),0 0 16px rgba(110,130,255,.25)}
+/* --- Thème clair --- */
+html.light body{background:#eaeefb}
+html.light body,html.light body *{color:#161a30!important}
+html.light .ambient{opacity:.35}
+html.light .glass,html.light .message,html.light .suggestion,html.light .settings-card,html.light .cleanup-card,html.light .history-entry,html.light .cleanup-item,html.light .chips button,html.light .mini,html.light .icon-btn,html.light .hist-search{background-image:linear-gradient(160deg,rgba(255,255,255,.85),rgba(255,255,255,.45))!important;border-color:rgba(70,90,170,.22)!important;box-shadow:inset 0 1.5px 0 #fff,0 8px 22px rgba(70,90,170,.18)!important}
+html.light .message.user{background-image:linear-gradient(135deg,rgba(106,167,255,.55),rgba(167,123,255,.4))!important}
+html.light .send-btn,html.light .boot-btn{color:#fff!important}
+html.light .boot{background:rgba(235,238,252,.6)}
