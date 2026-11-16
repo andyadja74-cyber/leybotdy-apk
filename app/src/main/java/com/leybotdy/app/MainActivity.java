@@ -28,6 +28,9 @@ public class MainActivity extends Activity {
             }
         });
         web = new WebView(this);
+        getWindow().setStatusBarColor(0xFF08090E);
+        getWindow().setNavigationBarColor(0xFF08090E);
+        web.setBackgroundColor(0xFF08090E);
         setContentView(web);
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
