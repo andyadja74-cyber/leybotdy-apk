@@ -25,7 +25,9 @@ $('composer').addEventListener('submit',async e=>{
   const input=$('messageInput'),text=input.value.trim();if(!text)return;
   addMessage('user',text);input.value='';input.style.height='auto';localStorage.removeItem('leybotdy_draft');
   if(currentChat.messages.length===1)currentChat.title=text.slice(0,32);
+  const mr=memCommand(text);if(mr!==null){addMessage('assistant',mr);saveChats();return;}memAuto(text);
   const cr=tryCalc(text);if(cr!==null){addMessage('assistant',cr);saveChats();return;}
+  const mr=memoryHandle(text);if(mr){addMessage('assistant',mr);saveChats();return;}
   addMessage('assistant','…');
   const last=currentChat.messages[currentChat.messages.length-1];
   const msgs=[];{let used=0;const hh=currentChat.messages.slice(0,-1);for(let i=hh.length-1;i>=0&&msgs.length<6;i--){const c=hh[i].text.startsWith('Erreur')?'(pas de réponse)':hh[i].text.slice(-900);if(used+c.length>2600)break;used+=c.length;msgs.unshift({role:hh[i].role,content:c});}while(msgs.length&&msgs[0].role!=='user')msgs.shift();}
@@ -35,7 +37,7 @@ $('composer').addEventListener('submit',async e=>{
   try{
     await ensureEngine();
     const r=await fetch(API+'/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json'},signal:ctrl.signal,
-      body:JSON.stringify({stream:true,temperature:0.7,top_p:0.95,top_k:64,repeat_penalty:1.05,max_tokens:fast()?128:+(localStorage.getItem('leybotdy_maxtok')||256),messages:[{role:'system',content:'Tu es un assistant. Réponds en français, de façon courte et exacte. Nous sommes le '+new Date().toLocaleString('fr-FR',{dateStyle:'full',timeStyle:'short'})+'.'},...msgs]})});
+      body:JSON.stringify({stream:true,temperature:0.7,top_p:0.95,top_k:64,repeat_penalty:1.05,max_tokens:fast()?128:+(localStorage.getItem('leybotdy_maxtok')||256),messages:[{role:'system',content:'Tu es un assistant. Réponds en français, de façon courte et exacte. Nous sommes le '+new Date().toLocaleString('fr-FR',{dateStyle:'full',timeStyle:'short'})+'.'+memCtx()+memText()},...msgs]})});
     if(!r.ok){let d='';try{d=(await r.text()).slice(0,160)}catch(_){}throw new Error(r.status===400?'discussion trop longue : ouvrez une nouvelle discussion.':r.status===503?'Gemma charge encore, réessayez dans un instant.':'HTTP '+r.status+' '+d);}
     const rd=r.body.getReader(),dec=new TextDecoder();let buf='',out='';
     for(;;){const {done,value}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});const lines=buf.split('\n');buf=lines.pop();
@@ -155,3 +157,37 @@ const sel=(id,key,def,fn)=>{const e=$(id);e.value=localStorage.getItem(key)||def
 sel('perfSel','leybotdy_perf','0',applyLook);sel('fsSel','leybotdy_fs','m',applyLook);sel('accSel','leybotdy_acc','bleu',applyLook);sel('idleSel','leybotdy_idle','5');applyLook();
 const fc=$('fastChip'),paintFast=()=>fc.classList.toggle('on',fast());fc.onclick=()=>{localStorage.setItem('leybotdy_fast',fast()?'0':'1');paintFast();};paintFast();
 const mi=$('messageInput');mi.value=localStorage.getItem('leybotdy_draft')||'';mi.addEventListener('input',()=>localStorage.setItem('leybotdy_draft',mi.value));
+function memGet(){try{return JSON.parse(localStorage.getItem('leybotdy_mem')||'[]')}catch(e){return[]}}
+function memSet(a){localStorage.setItem('leybotdy_mem',JSON.stringify(a.slice(-20)));memRender();}
+function memAdd(f){f=f.trim().replace(/\s+/g,' ').slice(0,140);if(f.length<3)return false;const a=memGet();if(a.some(x=>x.toLowerCase()===f.toLowerCase()))return false;a.push(f);memSet(a);return true;}
+function memCommand(t){const s=t.trim();let m;
+  if(/^(oublie|efface|supprime)\s+(tout|ma m[ée]moire)\b/i.test(s)){memSet([]);return 'Mémoire effacée.';}
+  if(m=s.match(/^(?:(?:retiens|souviens-toi|rappelle-toi|m[ée]morise)(?:\s+que)?|note\s+que)\s*:?\s+(.{3,})$/i))return memAdd(m[1])?'Noté : '+m[1].trim()+'.':'Je le savais déjà.';
+  return null;}
+function memAuto(t){if(localStorage.getItem('leybotdy_memoff')==='1'||t.includes('?'))return;
+  if(/^(je m'appelle|mon (pr[ée]nom|nom) est|j'aime|j'adore|je d[ée]teste|j'habite|je vis|je veux apprendre|j'apprends|ma passion|mon objectif|je travaille|je suis (passionn|[ée]tudiant|en train))/i.test(t.trim())&&memAdd(t))showToast('🧠 Mémorisé');}
+function memText(){const a=memGet();return(localStorage.getItem('leybotdy_memoff')==='1'||!a.length)?'':' Informations données par l’utilisateur sur lui-même (« je » = l’utilisateur) : '+a.join(' ; ')+'. Utilise-les pour personnaliser tes réponses et tes conseils.';}
+
+function memRender(){const L=$('memList');if(!L)return;const a=memGet();$('memCount').textContent=a.length?a.length+' souvenir'+(a.length>1?'s':''):'Rien pour l’instant';L.innerHTML='';
+  a.forEach((f,i)=>{const r=document.createElement('div');r.className='mem-row';const sp=document.createElement('span');sp.textContent=f;const x=document.createElement('button');x.className='hist-del';x.textContent='✕';x.onclick=()=>{const b=memGet();b.splice(i,1);memSet(b);};r.append(sp,x);L.appendChild(r);});
+  const add=document.createElement('input');add.className='hist-search';add.placeholder='Ajouter un souvenir…';add.onkeydown=e=>{if(e.key==='Enter'&&memAdd(add.value))add.value='';};L.appendChild(add);
+  const row=document.createElement('div');row.className='mem-ctl';const off=document.createElement('button');off.className='mini';off.textContent=localStorage.getItem('leybotdy_memoff')==='1'?'Activer la mémoire':'Désactiver la mémoire';off.onclick=()=>{localStorage.setItem('leybotdy_memoff',localStorage.getItem('leybotdy_memoff')==='1'?'0':'1');memRender();};
+  const clr=document.createElement('button');clr.className='mini';clr.textContent='Tout effacer';clr.onclick=()=>memSet([]);row.append(off,clr);L.appendChild(row);}
+$('memBtn').onclick=()=>$('memList').classList.toggle('hidden');
+memRender();
+const memGet=()=>{try{return JSON.parse(localStorage.getItem('leybotdy_mem')||'[]')}catch(e){return[]}};
+const memSet=a=>localStorage.setItem('leybotdy_mem',JSON.stringify(a.slice(-30)));
+function memAdd(f){f=f.trim().replace(/\s+/g,' ').slice(0,100);if(f.length<3)return false;const a=memGet();if(a.some(x=>x.toLowerCase()===f.toLowerCase()))return false;a.push(f);memSet(a);memRender();return true;}
+function memCtx(){const a=memGet();return a.length?" Ce que tu sais sur l'utilisateur : "+a.slice(-12).join(' ; ').slice(0,600)+'.':'';}
+function memoryHandle(t){t=t.replace(/’/g,"'").trim();
+  if(/\?\s*$/.test(t)&&/(que|qu'est-ce que) (sais|retiens)[- ]tu (de|sur) moi|ma m[ée]moire/i.test(t)){const a=memGet();return a.length?'Voici ce que je retiens sur toi :\n'+a.map(x=>'• '+x).join('\n'):"Je ne sais encore rien sur toi. Dis-moi par exemple « retiens que j'aime le football »."}
+  const m=t.match(/^(?:retiens|souviens[- ]toi|n'oublie pas)(?: bien)?(?: que)?\s+(.+)/i);
+  if(m){const f=m[1].replace(/[.!]+$/,'');return memAdd(f)?"🧠 C'est noté : "+f+'.':'Je le savais déjà.';}
+  if(!/\?/.test(t)){for(const x of [t.match(/^je m'appelle [^.,!?]{2,30}/i),t.match(/^j'(?:aime|adore|préfère|étudie|apprends)\b[^.!]{2,80}/i),t.match(/^j'habite [^.!]{2,60}/i),t.match(/^(?:ma passion|mon objectif|mon rêve)[^.!]{3,80}/i)])
+    if(x&&memAdd(x[0].replace(/^je m'appelle /i,"Je m'appelle ")))showToast('🧠 Retenu : '+x[0]);}
+  return null;}
+function memRender(){const b=$('memBox'),n=$('memCount'),a=memGet();if(n)n.textContent=a.length+' souvenir'+(a.length>1?'s':'');if(!b)return;b.innerHTML='';
+  a.forEach((f,i)=>{const r=document.createElement('div');r.className='mem-row';const sp=document.createElement('span');sp.textContent=f;const x=document.createElement('button');x.className='hist-del';x.textContent='✕';x.onclick=()=>{const c=memGet();c.splice(i,1);memSet(c);memRender();};r.append(sp,x);b.appendChild(r);});
+  const add=document.createElement('div');add.className='mem-row';const inp=document.createElement('input');inp.className='hist-search';inp.placeholder='Ajouter un souvenir…';inp.style.margin='0';const ok=document.createElement('button');ok.className='mini';ok.textContent='+';ok.onclick=()=>{memAdd(inp.value)};add.append(inp,ok);b.appendChild(add);
+  if(a.length){const clr=document.createElement('button');clr.className='mini';clr.textContent='Tout effacer';let arm=0;clr.onclick=()=>{if(!arm){arm=1;clr.textContent='Sûr ?';setTimeout(()=>{arm=0;clr.textContent='Tout effacer'},2500);return;}memSet([]);memRender();};b.appendChild(clr);}}
+$('memBtn').onclick=()=>$('memBox').classList.toggle('hidden');memRender();
