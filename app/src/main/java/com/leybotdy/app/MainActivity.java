@@ -1,12 +1,21 @@
 package com.leybotdy.app;
 
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.*;
 import android.content.res.AssetFileDescriptor;
 import android.net.Uri;
 import android.os.*;
 import android.webkit.*;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
+import org.json.JSONObject;
+import java.util.ArrayList;
 import android.widget.Toast;
 import java.io.*;
 import java.util.Locale;
@@ -16,6 +25,9 @@ public class MainActivity extends Activity {
     File model;
     volatile int copying = -1;
     TextToSpeech tts;
+    float rate = 1f;
+    SpeechRecognizer sr;
+    boolean pendingListen = false;
     volatile boolean ttsReady = false;
 
     @Override protected void onCreate(Bundle b) {
@@ -25,6 +37,11 @@ public class MainActivity extends Activity {
             if (st == TextToSpeech.SUCCESS) {
                 int r = tts.setLanguage(Locale.FRENCH);
                 ttsReady = r != TextToSpeech.LANG_MISSING_DATA && r != TextToSpeech.LANG_NOT_SUPPORTED;
+                tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                    @Override public void onStart(String id) { }
+                    @Override public void onDone(String id) { js("window.onSpoken&&onSpoken('" + id + "')"); }
+                    @Override public void onError(String id) { js("window.onSpoken&&onSpoken('" + id + "')"); }
+                });
             }
         });
         web = new WebView(this);
@@ -107,8 +124,31 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void speak(String t) {
             if (!ttsReady) { toast("Voix française non installée : ouvrez Paramètres > Voix."); return; }
+            tts.setSpeechRate(rate);
             tts.speak(t, TextToSpeech.QUEUE_FLUSH, null, "m");
         }
+        @JavascriptInterface public int freeMb() {
+            ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
+            ((ActivityManager) getSystemService(ACTIVITY_SERVICE)).getMemoryInfo(mi);
+            return (int) (mi.availMem >> 20);
+        }
+        @JavascriptInterface public void setThreads(int n) { getSharedPreferences("p", 0).edit().putInt("t", n).apply(); }
+        @JavascriptInterface public void setRate(double r) { rate = (float) r; }
+        @JavascriptInterface public void speakQ(String t, String id) {
+            if (!ttsReady) { js("window.onSpoken&&onSpoken('" + id + "')"); return; }
+            tts.setSpeechRate(rate);
+            tts.speak(t, TextToSpeech.QUEUE_ADD, null, id);
+        }
+        @JavascriptInterface public boolean speechAvailable() { return SpeechRecognizer.isRecognitionAvailable(MainActivity.this); }
+        @JavascriptInterface public void listen() {
+            runOnUiThread(() -> {
+                if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                    pendingListen = true;
+                    requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, 7);
+                } else listenNow();
+            });
+        }
+        @JavascriptInterface public void stopListen() { runOnUiThread(() -> { if (sr != null) sr.cancel(); }); }
         @JavascriptInterface public void stopSpeak() { if (tts != null) tts.stop(); }
         @JavascriptInterface public boolean speaking() { return tts != null && tts.isSpeaking(); }
         @JavascriptInterface public void voiceSettings() {
@@ -137,6 +177,43 @@ public class MainActivity extends Activity {
         web.evaluateJavascript("window.goBack?goBack():false", v -> { if (!"true".equals(v)) moveTaskToBack(true); });
     }
 
+    void js(final String s) { runOnUiThread(() -> { if (web != null) web.evaluateJavascript(s, null); }); }
+
+    void listenNow() {
+        if (sr == null) {
+            sr = SpeechRecognizer.createSpeechRecognizer(this);
+            sr.setRecognitionListener(new RecognitionListener() {
+                @Override public void onReadyForSpeech(Bundle b) { js("window.onSpeech&&onSpeech('ready','')"); }
+                @Override public void onBeginningOfSpeech() { }
+                @Override public void onRmsChanged(float v) { }
+                @Override public void onBufferReceived(byte[] b) { }
+                @Override public void onEndOfSpeech() { }
+                @Override public void onError(int e) { js("window.onSpeech&&onSpeech('error','" + e + "')"); }
+                @Override public void onResults(Bundle b) { send("final", b); }
+                @Override public void onPartialResults(Bundle b) { send("partial", b); }
+                @Override public void onEvent(int t, Bundle b) { }
+                void send(String type, Bundle b) {
+                    ArrayList<String> l = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                    if (l != null && !l.isEmpty()) js("window.onSpeech&&onSpeech('" + type + "'," + JSONObject.quote(l.get(0)) + ")");
+                }
+            });
+        }
+        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "fr-FR");
+        i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+        i.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+        sr.startListening(i);
+    }
+
+    @Override public void onRequestPermissionsResult(int rc, String[] p, int[] r) {
+        super.onRequestPermissionsResult(rc, p, r);
+        if (rc != 7) return;
+        if (r.length > 0 && r[0] == PackageManager.PERMISSION_GRANTED) {
+            if (pendingListen) { pendingListen = false; listenNow(); }
+        } else { pendingListen = false; js("window.onSpeech&&onSpeech('error','perm')"); }
+    }
+
     void toast(String m) { runOnUiThread(() -> Toast.makeText(this, m, Toast.LENGTH_LONG).show()); }
 
     @Override protected void onDestroy() {
@@ -144,6 +221,7 @@ public class MainActivity extends Activity {
             EngineService.stop();
             stopService(new Intent(this, EngineService.class));
         }
+        if (sr != null) sr.destroy();
         if (tts != null) tts.shutdown();
         super.onDestroy();
     }

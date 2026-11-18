@@ -102,3 +102,30 @@ html.perf .splash{display:none}
 .mem-box.hidden{display:none}
 .mem-row{display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:14px}
 .mem-row span{flex:1;min-width:0}
+
+/* --- Mémoire personnelle --- */
+.mem-box{padding:18px;margin:10px 0;display:flex;flex-direction:column;gap:10px}
+.mem-title{font-weight:700;font-size:16px}.mem-title small{display:block;font-weight:400;opacity:.7;font-size:12px;margin-top:3px}
+.mem-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 2px;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px}
+.mem-add{display:flex;gap:8px}
+.mem-add input{flex:1;min-width:0;padding:11px 16px;border-radius:20px;color:#fff;font-size:14px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.07);outline:none}
+
+/* --- Lot 3 --- */
+.msg-foot{flex-wrap:wrap}
+.message pre{position:relative;padding-top:30px}
+.copy-code{position:absolute;top:6px;right:6px;padding:3px 10px;font-size:11px;border-radius:10px;color:#fff;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12)}
+.card-row{padding:8px 2px;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;position:relative}
+.card-row summary{cursor:pointer;padding-right:40px}.card-row div{margin-top:6px;opacity:.85;white-space:pre-wrap}
+.card-row .hist-del{position:absolute;right:0;top:4px}
+.daily{margin:18px auto 0;max-width:340px;padding:14px 18px;font-size:13px;text-align:center;line-height:1.5}
+.chips button.mine{background:linear-gradient(145deg,rgba(120,220,170,.32),rgba(255,255,255,.05))}
+
+/* --- Live vocal --- */
+.fab{position:fixed;bottom:158px;z-index:20;width:46px;height:46px;border-radius:50%;color:#fff;font-size:20px;border:1px solid rgba(255,255,255,.3);background:linear-gradient(145deg,rgba(255,255,255,.3),rgba(255,255,255,.06));box-shadow:inset 0 1.5px 0 rgba(255,255,255,.6),0 0 24px rgba(var(--ar,110,130,255),.5)}
+#liveBtn{left:22px}#micBtn{left:78px}.fab.on{background:linear-gradient(145deg,rgba(255,90,110,.7),rgba(255,255,255,.1))}
+.live{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:28px;text-align:center;background:rgba(6,7,12,.88);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+.live.hidden{display:none}
+.live-orb{width:150px;height:150px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,rgba(var(--ar,110,130,255),.9) 45%,rgba(60,40,160,.9));box-shadow:0 0 70px rgba(var(--ar,110,130,255),.75)}
+.live-orb.listen{animation:orbL 1.4s ease-in-out infinite}.live-orb.think{animation:orbT 1s linear infinite;filter:hue-rotate(40deg)}.live-orb.speak{animation:orbS .6s ease-in-out infinite alternate}
+@keyframes orbL{50%{transform:scale(1.12)}}@keyframes orbT{50%{transform:scale(.92);opacity:.7}}@keyframes orbS{to{transform:scale(1.18)}}
+.live-state{letter-spacing:.2em;font-size:13px;opacity:.8}.live-text{min-height:48px;font-size:18px}.live-ans{max-height:22vh;overflow:auto;font-size:14px;opacity:.85;white-space:pre-wrap}
