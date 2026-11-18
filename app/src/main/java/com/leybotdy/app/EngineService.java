@@ -29,29 +29,63 @@ public class EngineService extends Service {
         stop();
         status = "starting";
         synchronized (log) { log.setLength(0); }
-        final String bin = getApplicationInfo().nativeLibraryDir + "/libllama_server.so";
-        final String model = new File(getFilesDir(), "model.gguf").getAbsolutePath();
+        final File binFile = new File(getApplicationInfo().nativeLibraryDir, "libllama_server.so");
+        final File modelFile = new File(getFilesDir(), "model.gguf");
         new Thread(() -> {
+            java.lang.Process me = null;
             try {
-                ProcessBuilder pb = new ProcessBuilder(bin, "-m", model, "--host", "127.0.0.1",
-                        "--port", "8080", "-c", "2048", "-t", String.valueOf(getSharedPreferences("p", 0).getInt("t", 4)));
+                if (!modelFile.isFile() || modelFile.length() < 1024L * 1024L)
+                    throw new IOException("Modèle GGUF absent ou incomplet : " + modelFile);
+                if (!binFile.isFile())
+                    throw new IOException("Moteur natif absent : " + binFile + ". Vérifiez l'intégration de libllama_server.so pour armeabi-v7a.");
+                // Le binaire doit être exécutable lorsqu'il est livré dans nativeLibraryDir.
+                if (!binFile.canExecute() && !binFile.setExecutable(true, true))
+                    throw new IOException("Le moteur natif n'est pas exécutable : " + binFile);
+                ProcessBuilder pb = new ProcessBuilder(binFile.getAbsolutePath(), "-m", modelFile.getAbsolutePath(),
+                        "--host", "127.0.0.1", "--port", "8080", "-c", "2048", "-t",
+                        String.valueOf(Math.max(1, Math.min(8, getSharedPreferences("p", 0).getInt("t", 4)))));
                 pb.redirectErrorStream(true);
-                java.lang.Process me = pb.start();
+                me = pb.start();
                 proc = me;
+                status = "starting";
                 BufferedReader r = new BufferedReader(new InputStreamReader(me.getInputStream()));
-                String l;
-                while ((l = r.readLine()) != null) {
-                    synchronized (log) { log.append(l).append('\n'); if (log.length() > 6000) log.delete(0, 3000); }
+                String line;
+                while ((line = r.readLine()) != null) {
+                    synchronized (log) { log.append(line).append('\n'); if (log.length() > 6000) log.delete(0, 3000); }
                 }
-                if (proc == me) status = "error";
+                int exitCode = me.waitFor();
+                if (proc == me) {
+                    proc = null;
+                    status = exitCode == 0 ? "none" : "error";
+                    synchronized (log) { log.append("Moteur arrêté (code ").append(exitCode).append(").\n"); }
+                }
             } catch (Exception e) {
-                synchronized (log) { log.append(e).append('\n'); }
+                if (me != null) me.destroy();
+                synchronized (log) { log.append(e.getClass().getSimpleName()).append(": ").append(e.getMessage()).append('\n'); }
                 status = "error";
             }
-        }).start();
+        }, "leybotdy-engine").start();
     }
 
-    static void stop() { java.lang.Process p = proc; proc = null; status = "none"; if (p != null) p.destroy(); }
+    static void stop() {
+        java.lang.Process p = proc;
+        proc = null;
+        status = "none";
+        if (p != null) {
+            p.destroy();
+            try {
+                if (!p.waitFor(1500, java.util.concurrent.TimeUnit.MILLISECONDS)) p.destroyForcibly();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                p.destroyForcibly();
+            }
+        }
+    }
 
-    @Override public void onDestroy() { stop(); super.onDestroy(); }
+    @Override public void onDestroy() {
+        stop();
+        if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_REMOVE);
+        else stopForeground(true);
+        super.onDestroy();
+    }
 }

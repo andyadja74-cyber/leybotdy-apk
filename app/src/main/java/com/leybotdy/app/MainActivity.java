@@ -3,7 +3,6 @@ package com.leybotdy.app;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.*;
-import android.content.res.AssetFileDescriptor;
 import android.net.Uri;
 import android.os.*;
 import android.webkit.*;
@@ -19,6 +18,8 @@ import java.util.ArrayList;
 import android.widget.Toast;
 import java.io.*;
 import java.util.Locale;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
 public class MainActivity extends Activity {
     WebView web;
@@ -39,8 +40,8 @@ public class MainActivity extends Activity {
                 ttsReady = r != TextToSpeech.LANG_MISSING_DATA && r != TextToSpeech.LANG_NOT_SUPPORTED;
                 tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
                     @Override public void onStart(String id) { }
-                    @Override public void onDone(String id) { js("window.onSpoken&&onSpoken('" + id + "')"); }
-                    @Override public void onError(String id) { js("window.onSpoken&&onSpoken('" + id + "')"); }
+                    @Override public void onDone(String id) { js("window.onSpoken&&onSpoken(" + JSONObject.quote(id) + ")"); }
+                    @Override public void onError(String id) { js("window.onSpoken&&onSpoken(" + JSONObject.quote(id) + ")"); }
                 });
             }
         });
@@ -52,10 +53,22 @@ public class MainActivity extends Activity {
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
-        s.setAllowFileAccess(true);
-        s.setAllowUniversalAccessFromFileURLs(true);
+        s.setAllowFileAccess(true); // nécessaire pour charger les assets locaux
+        s.setAllowFileAccessFromFileURLs(false);
+        s.setAllowUniversalAccessFromFileURLs(false);
+        s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        if (Build.VERSION.SDK_INT >= 26) s.setSafeBrowsingEnabled(true);
         web.addJavascriptInterface(new Bridge(), "Android");
-        web.setWebViewClient(new WebViewClient());
+        web.setWebViewClient(new WebViewClient() {
+            @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                Uri target = request.getUrl();
+                // L'interface reste dans les assets locaux ; aucune navigation web externe.
+                return !("file".equals(target.getScheme()) && target.getPath() != null && target.getPath().startsWith("/android_asset/"));
+            }
+            @Override public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                return !(url != null && url.startsWith("file:///android_asset/"));
+            }
+        });
         web.loadUrl("file:///android_asset/index.html");
         if (model.exists()) startEngine();
     }
@@ -80,27 +93,39 @@ public class MainActivity extends Activity {
         copying = 0;
         new Thread(() -> {
             File tmp = new File(getFilesDir(), "model.tmp");
-            try (AssetFileDescriptor fd = getContentResolver().openAssetFileDescriptor(u, "r");
-                 InputStream in = getContentResolver().openInputStream(u);
-                 OutputStream out = new FileOutputStream(tmp)) {
-                long len = fd.getLength(), done = 0;
-                byte[] buf = new byte[1 << 16];
-                int n;
-                while ((n = in.read(buf)) > 0) {
-                    out.write(buf, 0, n);
-                    done += n;
-                    if (len > 0) copying = (int) (done * 100 / len);
+            long done = 0;
+            try (InputStream in = getContentResolver().openInputStream(u)) {
+                if (in == null) throw new IOException("Le fournisseur n’a pas ouvert le fichier.");
+                try (FileOutputStream out = new FileOutputStream(tmp)) {
+                    byte[] buf = new byte[1 << 16];
+                    int n;
+                    while ((n = in.read(buf)) != -1) {
+                        if (n == 0) continue;
+                        out.write(buf, 0, n);
+                        done += n;
+                        // La taille exacte n'est pas toujours fournie par les fournisseurs cloud.
+                        copying = (int) Math.min(99, done / (1024L * 1024L));
+                    }
+                    out.getFD().sync();
                 }
+                if (!tmp.isFile() || tmp.length() < 1024L * 1024L)
+                    throw new IOException("Le fichier GGUF est vide ou incomplet.");
+                try {
+                    Files.move(tmp.toPath(), model.toPath(), StandardCopyOption.REPLACE_EXISTING,
+                            StandardCopyOption.ATOMIC_MOVE);
+                } catch (Exception atomicError) {
+                    Files.move(tmp.toPath(), model.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                }
+                copying = -1;
+                runOnUiThread(this::startEngine);
             } catch (Exception e) {
+                // Ne jamais supprimer l'ancien modèle valide si l'import échoue.
+                // Le fichier temporaire est uniquement supprimé après l'échec.
+                //noinspection ResultOfMethodCallIgnored
                 tmp.delete();
                 copying = -1;
                 toast("Copie impossible : " + e.getMessage());
-                return;
             }
-            model.delete();
-            tmp.renameTo(model);
-            copying = -1;
-            runOnUiThread(this::startEngine);
         }).start();
     }
 
@@ -135,7 +160,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void setThreads(int n) { getSharedPreferences("p", 0).edit().putInt("t", n).apply(); }
         @JavascriptInterface public void setRate(double r) { rate = (float) r; }
         @JavascriptInterface public void speakQ(String t, String id) {
-            if (!ttsReady) { js("window.onSpoken&&onSpoken('" + id + "')"); return; }
+            if (!ttsReady) { js("window.onSpoken&&onSpoken(" + JSONObject.quote(id) + ")"); return; }
             tts.setSpeechRate(rate);
             tts.speak(t, TextToSpeech.QUEUE_ADD, null, id);
         }

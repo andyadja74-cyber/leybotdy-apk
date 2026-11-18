@@ -6,7 +6,7 @@ let histQ='',renaming=null;
 const A=window.Android;
 window.addEventListener('error',e=>{try{showToast('Erreur : '+e.message+' (l.'+e.lineno+')')}catch(_){}});
 window.addEventListener('unhandledrejection',e=>{try{showToast('Erreur : '+((e.reason&&e.reason.message)||e.reason))}catch(_){}});
-const STORAGE = { chats: 'leybotdy_chats_v1', memory: 'leybotdy_memory_v1', cache: 'leybotdy_ui_cache_v1' };
+const STORAGE = { chats: 'leybotdy_chats_v1', memory: 'leybotdy_mem', cache: 'leybotdy_ui_cache_v1' };
 let chats = load(STORAGE.chats, []);
 let currentChat = null;
 function load(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } }
@@ -41,12 +41,18 @@ $('composer').addEventListener('submit',async e=>{
     {const fr=ramInfo();if(fr>=0&&fr<350&&Date.now()-lastWarn>120000){lastWarn=Date.now();showToast('Mémoire basse ('+fr+' Mo) : ferme tes autres applis.');}}
     await ensureEngine();
     const r=await fetch(API+'/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json'},signal:ctrl.signal,
-      body:JSON.stringify({stream:true,temperature:0.7,top_p:0.95,top_k:64,repeat_penalty:1.05,max_tokens:fast()?128:+(localStorage.getItem('leybotdy_maxtok')||256),messages:[{role:'system',content:'Tu es un assistant. Réponds en français, de façon courte et exacte. Nous sommes le '+new Date().toLocaleString('fr-FR',{dateStyle:'full',timeStyle:'short'})+'.'+memText()+memCtx()+memText()},...msgs]})});
+      body:JSON.stringify({stream:true,temperature:0.7,top_p:0.95,top_k:64,repeat_penalty:1.05,max_tokens:fast()?128:+(localStorage.getItem('leybotdy_maxtok')||256),messages:[{role:'system',content:'Tu es un assistant. Réponds en français, de façon courte et exacte. Nous sommes le '+new Date().toLocaleString('fr-FR',{dateStyle:'full',timeStyle:'short'})+'.'+memText()},...msgs]})});
     if(!r.ok){let d='';try{d=(await r.text()).slice(0,160)}catch(_){}throw new Error(r.status===400?'discussion trop longue : ouvrez une nouvelle discussion.':r.status===503?'Gemma charge encore, réessayez dans un instant.':'HTTP '+r.status+' '+d);}
     const rd=r.body.getReader(),dec=new TextDecoder();let buf='',out='';
     for(;;){const {done,value}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});const lines=buf.split('\n');buf=lines.pop();
       for(const l of lines){if(!l.startsWith('data: ')||l.includes('[DONE]'))continue;
-        try{const t=JSON.parse(l.slice(6)).choices[0].delta.content;if(t){out+=t;n++;last.text=out;if(liveOn)liveFeed(out);if(!raf)raf=requestAnimationFrame(()=>{raf=0;el.innerHTML=md(out);scrollEnd();});}}catch{}}}
+        try{const t=JSON.parse(l.slice(6)).choices?.[0]?.delta?.content;if(t){out+=t;n++;last.text=out;if(liveOn)liveFeed(out);if(!raf)raf=requestAnimationFrame(()=>{raf=0;el.innerHTML=md(out);scrollEnd();});}}catch{}}
+    }
+    buf+=dec.decode();
+    if(buf.startsWith('data: ')&&!buf.includes('[DONE]')){
+      try{const t=JSON.parse(buf.slice(6)).choices?.[0]?.delta?.content;if(t){out+=t;n++;last.text=out;}}catch(_){}
+    }
+    if(!out) throw new Error('Le moteur a terminé sans envoyer de réponse.');
   }catch(err){
     if(last.text==='…')last.text=err.name==='AbortError'?'(interrompu)':'Erreur : '+err.message;
   }
@@ -153,7 +159,24 @@ function tryCalc(t){let e=t.toLowerCase().replace(/combien (font|fait|vaut)|calc
   try{const v=Function('"use strict";return ('+e+')')();if(typeof v!=='number'||!isFinite(v))return null;
     return e.replace(/\*\*/g,'^').replace(/\*/g,'×').replace(/\//g,'÷')+' = '+(+v.toFixed(8)).toLocaleString('fr-FR',{maximumFractionDigits:8});}catch(_){return null;}}
 function regen(){if(busy)return;const ms=currentChat.messages;if(ms.length<2)return;ms.pop();const u=ms.pop();$('messageInput').value=u.text;renderMessages();$('composer').dispatchEvent(new Event('submit',{cancelable:true}));}
-async function ensureEngine(){lastAct=Date.now();if(!A||A.status()!=='none')return;autoUnl=false;A.reload();for(let i=0;i<150;i++){await sleep(1000);try{if((await fetch(API+'/health')).ok)return;}catch(e){}}}
+async function ensureEngine(){
+  lastAct=Date.now();
+  // Vérifier d'abord le serveur : un statut Java "starting" ne garantit pas
+  // que l'API HTTP soit déjà disponible.
+  try { const health=await fetch(API+'/health'); if(health.ok) return; } catch(_) {}
+  if(!A) throw new Error('Pont Android indisponible : moteur local inaccessible.');
+  const state=A.status();
+  if(state==='nomodel') throw new Error('Aucun modèle GGUF installé.');
+  if(state==='none'||state==='error') { autoUnl=false; A.reload(); }
+  for(let i=0;i<90;i++){
+    await sleep(1000);
+    try { const r=await fetch(API+'/health'); if(r.ok) return; } catch(_) {}
+    const current=A.status();
+    if(current==='error') throw new Error('Le moteur Gemma n’a pas démarré : '+(A.log?A.log():'consultez les journaux Android.'));
+    if(current==='nomodel') throw new Error('Aucun modèle GGUF installé.');
+  }
+  throw new Error('Délai dépassé : le serveur Gemma ne répond pas après 90 secondes.');
+}
 setInterval(()=>{const m=+(localStorage.getItem('leybotdy_idle')||5);if(!A||!m||busy||autoUnl||!ready)return;if(Date.now()-lastAct>m*60000){autoUnl=true;A.unload();setStatus('Gemma en veille');}},30000);
 ['touchstart','keydown'].forEach(ev=>document.addEventListener(ev,()=>{lastAct=Date.now();},{passive:true}));
 function applyLook(){const d=document.documentElement;d.classList.toggle('perf',localStorage.getItem('leybotdy_perf')==='1');d.dataset.fs=localStorage.getItem('leybotdy_fs')||'m';
@@ -167,6 +190,8 @@ function memGet(){try{return JSON.parse(localStorage.getItem('leybotdy_mem')||'[
 function memSet(a){localStorage.setItem('leybotdy_mem',JSON.stringify(a.slice(-20)));}
 function memText(){const m=memGet();let o='';for(let i=m.length-1;i>=0;i--){if((o+m[i]).length>700)break;o=m[i]+' ; '+o;}
   return o?' Ce que tu sais sur l’utilisateur : '+o.replace(/ ; $/,'')+'. Si on te demande des conseils ou quoi apprendre, appuie-toi dessus.':'';}
+// Alias de compatibilité : certains anciens builds appelaient memCtx().
+function memCtx(){return memText();}
 function memAdd(f){f=f.trim().replace(/[.!]+$/,'').slice(0,120);if(!f)return;const m=memGet().filter(x=>x.toLowerCase()!==f.toLowerCase());m.push(f);memSet(m);renderMem();}
 const FIRST=s=>s.replace(/\bmon\b/gi,'son').replace(/\bma\b/gi,'sa').replace(/\bmes\b/gi,'ses').replace(/\bje suis\b/gi,'il est').replace(/\bj['’]ai\b/gi,'il a').replace(/\bj['’]/gi,'il ').replace(/\bje\b/gi,'il').replace(/\bmoi\b/gi,'lui');
 function tryMemory(t){const x=t.trim();let m;

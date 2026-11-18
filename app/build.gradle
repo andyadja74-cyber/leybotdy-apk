@@ -10,8 +10,8 @@ android {
         versionName '2.0'
         ndk { abiFilters 'armeabi-v7a' }
     }
-    signingConfigs { main { storeFile file('leybotdy.p12'); storePassword 'leybotdy'; keyAlias 'leybotdy'; keyPassword 'leybotdy'; storeType 'pkcs12' } }
-    buildTypes { debug { signingConfig signingConfigs.main } }
+    // La variante debug utilise la clé debug temporaire générée par Android Gradle Plugin.
+    // Ne jamais stocker de mot de passe ou de clé privée dans le dépôt.
     packaging { jniLibs { useLegacyPackaging = true; keepDebugSymbols += '**/*.so' } }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
