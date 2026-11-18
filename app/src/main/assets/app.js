@@ -1,8 +1,10 @@
-const $ = (id) => document.getElementById(id);
+const NULLEL=new Proxy(function(){},{get:(t,k)=>k==='classList'?{add(){},remove(){},toggle(){},contains(){return false}}:(k==='style'||k==='dataset')?{}:(k==='value'||k==='textContent'||k==='innerHTML'||k==='className')?'':(k==='querySelectorAll')?(()=>[]):(()=>NULLEL),set:()=>true,apply:()=>NULLEL});
+const $ = (id) => document.getElementById(id)||NULLEL;
+const $q = (q) => document.querySelector(q)||NULLEL;
 let autoUnl=false,lastAct=Date.now();
 let histQ='',renaming=null;
 const A=window.Android;
-window.addEventListener('error',e=>{try{showToast('Erreur : '+e.message)}catch(_){}});
+window.addEventListener('error',e=>{try{showToast('Erreur : '+e.message+' (l.'+e.lineno+')')}catch(_){}});
 window.addEventListener('unhandledrejection',e=>{try{showToast('Erreur : '+((e.reason&&e.reason.message)||e.reason))}catch(_){}});
 const STORAGE = { chats: 'leybotdy_chats_v1', memory: 'leybotdy_memory_v1', cache: 'leybotdy_ui_cache_v1' };
 let chats = load(STORAGE.chats, []);
@@ -17,7 +19,7 @@ function renderMessages() { const host=$('messages');host.innerHTML='';(currentC
 function addMessage(role,text) { if(!currentChat) newChat();currentChat.messages.push({role,text});if(currentChat.title==='Nouvelle discussion'&&role==='user')currentChat.title=text.slice(0,34)+(text.length>34?'…':'');saveChats();renderHistory();renderMessages();$('welcome').classList.add('hidden'); }
 const API='http://127.0.0.1:8080';
 let busy=false,ctrl=null;
-async function waitServer(){const st=document.querySelector('.sidebar-bottom span:last-child');for(;;){try{const r=await fetch(API+'/health');if(r.ok){if(st)st.textContent='Gemma prêt (100 % local)';return;}}catch(e){}if(st)st.textContent='Chargement de Gemma…';await new Promise(r=>setTimeout(r,1500));}}
+async function waitServer(){const st=$q('.sidebar-bottom span:last-child');for(;;){try{const r=await fetch(API+'/health');if(r.ok){if(st)st.textContent='Gemma prêt (100 % local)';return;}}catch(e){}if(st)st.textContent='Chargement de Gemma…';await new Promise(r=>setTimeout(r,1500));}}
 $('composer').addEventListener('submit',async e=>{
   e.preventDefault();
   if(busy){ctrl&&ctrl.abort();return;}
@@ -33,7 +35,7 @@ $('composer').addEventListener('submit',async e=>{
   const msgs=[];{let used=0;const hh=currentChat.messages.slice(0,-1);for(let i=hh.length-1;i>=0&&msgs.length<6;i--){const c=hh[i].text.startsWith('Erreur')?'(pas de réponse)':hh[i].text.slice(-900);if(used+c.length>2200)break;used+=c.length;msgs.unshift({role:hh[i].role,content:c});}while(msgs.length&&msgs[0].role!=='user')msgs.shift();}
   const P=personaText();if(P&&msgs.length)msgs[msgs.length-1].content=P+'\n\n'+msgs[msgs.length-1].content;
   const W=wrapForModel(text);if(W&&msgs.length)msgs[msgs.length-1].content=W;
-  const el=$('messages').lastElementChild.firstChild,btn=document.querySelector('.send-btn');
+  const el=$('messages').lastElementChild.firstChild,btn=$q('.send-btn');
   let raf=0;busy=true;ctrl=new AbortController();btn.textContent='■';const t0=Date.now();let n=0;
   try{
     {const fr=ramInfo();if(fr>=0&&fr<350&&Date.now()-lastWarn>120000){lastWarn=Date.now();showToast('Mémoire basse ('+fr+' Mo) : ferme tes autres applis.');}}
@@ -83,7 +85,7 @@ boot.innerHTML='<div class="boot-card"><div class="boot-orb">✧</div><h2 id="bo
 document.body.appendChild(boot);
 let ready=false,since=0;
 function showBoot(T,P,pct,log,label,act){boot.classList.remove('hidden');$('bootT').textContent=T;$('bootP').textContent=P||'';$('bootBar').style.display=pct>=0?'block':'none';$('bootI').style.width=pct+'%';$('bootL').textContent=log||'';$('bootL').style.display=log?'block':'none';const b=$('bootBtn');b.style.display=label?'inline-block':'none';b.textContent=label||'';b.onclick=act;}
-function setStatus(t){const st=document.querySelector('.sidebar-bottom span:last-child');if(st)st.textContent=t;}
+function setStatus(t){const st=$q('.sidebar-bottom span:last-child');if(st)st.textContent=t;}
 async function tick(){
   const s=A.status();
   if(s!=='starting'){ready=false;since=0;}
@@ -110,7 +112,7 @@ if(A){tick();setInterval(tick,1500);}else waitServer();
 function setNav(v){document.querySelectorAll('.fab').forEach(b=>b.style.display=v==='settings'?'none':'');const b=$('openSettings');b.textContent=v==='settings'?'⌂':'⚙';b.setAttribute('aria-label',v==='settings'?'Accueil':'Paramètres');}
 window.goBack=function(){if(liveOn){liveStop();return true;}const sb=$('sidebar');if(sb.classList.contains('open')){sb.classList.remove('open');return true;}if(!$('settingsView').classList.contains('hidden')){switchView('chat');return true;}return false;};
 $('backHome').onclick=()=>switchView('chat');
-document.querySelector('.top-title').onclick=()=>{switchView('chat');window.scrollTo({top:0,behavior:'smooth'});};
+$q('.top-title').onclick=()=>{switchView('chat');window.scrollTo({top:0,behavior:'smooth'});};
 let sx=0,sy=0;
 document.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
 document.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-sx,dy=Math.abs(e.changedTouches[0].clientY-sy);if(dy>60||Math.abs(dx)<70)return;const sb=$('sidebar');if(dx>0&&sx<30)sb.classList.add('open');else if(dx<0&&sb.classList.contains('open'))sb.classList.remove('open');},{passive:true});
@@ -121,7 +123,7 @@ tbtn.onclick=()=>window.scrollTo({top:document.documentElement.scrollHeight,beha
 const PERSONAS={prof:'Explique comme un professeur patient, avec des mots simples et un exemple.',redac:'Réponds comme un rédacteur : texte soigné et bien tourné.',prog:'Réponds comme un développeur expert : code court et clair, explication brève.',court:'Réponds en deux phrases maximum.'};
 function personaText(){return fast()?PERSONAS.court:(PERSONAS[localStorage.getItem('leybotdy_persona')]||'');}
 function renderHistory(){const h=$('historyList');h.innerHTML='';const q=histQ.trim().toLowerCase();
-  const list=chats.filter(c=>!q||(c.title||'').toLowerCase().includes(q)||c.messages.some(m=>m.text.toLowerCase().includes(q))).sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0));
+  const list=chats.filter(c=>!q||(c.title||'').toLowerCase().includes(q)||(c.messages||[]).some(m=>String(m.text||'').toLowerCase().includes(q))).sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0));
   if(!list.length){h.innerHTML='<div class="empty-history">'+(q?'Aucun résultat':'Aucune discussion récente')+'</div>';return;}
   list.slice(0,40).forEach(c=>{const r=document.createElement('div');r.className='hist-row';
     if(renaming===c.id){const i=document.createElement('input');i.className='hist-edit';i.value=c.title||'';const ok=()=>{c.title=i.value.trim()||c.title;renaming=null;saveChats();renderHistory();};i.onkeydown=e=>{if(e.key==='Enter')ok();};i.onblur=ok;r.appendChild(i);h.appendChild(r);setTimeout(()=>i.focus(),30);return;}
@@ -144,8 +146,8 @@ $('exportBtn').onclick=()=>{if(!currentChat||!currentChat.messages.length)return
 renderHistory();
 
 function scrollEnd(){window.scrollTo(0,document.documentElement.scrollHeight);}
-const fast=()=>localStorage.getItem('leybotdy_fast')==='1';
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function fast(){return localStorage.getItem('leybotdy_fast')==='1';}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 function tryCalc(t){let e=t.toLowerCase().replace(/combien (font|fait|vaut)|calcule|calcul|=|\?/g,'').replace(/×|x(?=\s*\d)/g,'*').replace(/÷/g,'/').replace(/,/g,'.').replace(/\^/g,'**').replace(/(\d)\s+(?=\d)/g,'$1').trim();
   if(!/^[\d\s+\-*/().%]+$/.test(e)||!/\d\s*([+\-*/%]|\*\*)\s*[\d(]/.test(e))return null;
   try{const v=Function('"use strict";return ('+e+')')();if(typeof v!=='number'||!isFinite(v))return null;
@@ -161,8 +163,8 @@ sel('perfSel','leybotdy_perf','0',applyLook);sel('fsSel','leybotdy_fs','m',apply
 const fc=$('fastChip'),paintFast=()=>fc.classList.toggle('on',fast());fc.onclick=()=>{localStorage.setItem('leybotdy_fast',fast()?'0':'1');paintFast();};paintFast();
 const mi=$('messageInput');mi.value=localStorage.getItem('leybotdy_draft')||'';mi.addEventListener('input',()=>localStorage.setItem('leybotdy_draft',mi.value));
 /*MEM_START*/
-const memGet=()=>{try{return JSON.parse(localStorage.getItem('leybotdy_mem')||'[]')}catch(_){return[]}};
-const memSet=a=>localStorage.setItem('leybotdy_mem',JSON.stringify(a.slice(-20)));
+function memGet(){try{return JSON.parse(localStorage.getItem('leybotdy_mem')||'[]')}catch(_){return[]}}
+function memSet(a){localStorage.setItem('leybotdy_mem',JSON.stringify(a.slice(-20)));}
 function memText(){const m=memGet();let o='';for(let i=m.length-1;i>=0;i--){if((o+m[i]).length>700)break;o=m[i]+' ; '+o;}
   return o?' Ce que tu sais sur l’utilisateur : '+o.replace(/ ; $/,'')+'. Si on te demande des conseils ou quoi apprendre, appuie-toi dessus.':'';}
 function memAdd(f){f=f.trim().replace(/[.!]+$/,'').slice(0,120);if(!f)return;const m=memGet().filter(x=>x.toLowerCase()!==f.toLowerCase());m.push(f);memSet(m);renderMem();}
@@ -192,7 +194,7 @@ renderMem();
 /*MEM_END*/
 var lastWarn=0;
 /*PURE_START*/
-let quiz=null;
+var quiz=null;
 function wrapForModel(t){const m=t.match(/^\/quiz\s*(.*)/i);
   if(m){quiz={topic:m[1]||'culture générale',score:0,n:0,wait:false,first:true};return 'Pose-moi une seule question de quiz courte sur : '+quiz.topic+'. Ne donne pas la réponse.';}
   if(quiz&&quiz.wait)return 'Ma réponse : '+t+'\nDis si elle est correcte en commençant par « Correct » ou « Incorrect », explique en une phrase, puis pose une nouvelle question courte sur '+quiz.topic+'.';
@@ -205,27 +207,27 @@ function tryCommand(t){const x=t.trim();let m;
     return r.length?r.length+' résultat(s) :\n• '+r.join('\n• '):'Aucun résultat pour « '+m[1]+' ».';}
   if(/^\/aide\b/i.test(x))return 'Commandes : /quiz sujet, /stop, /cherche mot, /retiens …, /oublie …, /memoire. Calculs : tape 12×7.';
   return null;}
-const fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+function fmt(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function markDay(){let d=[];try{d=JSON.parse(localStorage.getItem('leybotdy_days')||'[]')}catch(_){}const k=fmt(new Date());if(!d.includes(k)){d.push(k);localStorage.setItem('leybotdy_days',JSON.stringify(d.slice(-60)));}}
 function streak(){let d=[];try{d=JSON.parse(localStorage.getItem('leybotdy_days')||'[]')}catch(_){}const s=new Set(d);let n=0;const t=new Date();while(s.has(fmt(t))){n++;t.setDate(t.getDate()-1);}return n;}
 /*PURE_END*/
-const TIPS=['Demande « explique comme à un enfant » pour une réponse plus simple.','Appuie sur ⚡ Rapide pour des réponses courtes et vite.','Dis « retiens que… » pour que Gemma se souvienne de toi.','Une question courte et précise donne de meilleures réponses.','Ferme tes autres applis pour libérer de la mémoire.','Écris 12×7 : la calculatrice répond instantanément.','Essaie /quiz histoire pour t’entraîner avec des questions.','Touche 📇 sous une réponse pour créer une fiche de révision.'];
-const TIPS_DEV=['Demande à Gemma d’expliquer ton code ligne par ligne.','Colle une erreur et demande : « qu’est-ce que ça veut dire ? ».','Choisis la personnalité Programmeur pour des réponses plus techniques.','Essaie /quiz python pour réviser en jouant.'];
-function renderDaily(){let e=$('daily');if(!e){e=document.createElement('div');e.id='daily';e.className='daily glass';const w=$('welcome');if(w)w.appendChild(e);}
+var TIPS=['Demande « explique comme à un enfant » pour une réponse plus simple.','Appuie sur ⚡ Rapide pour des réponses courtes et vite.','Dis « retiens que… » pour que Gemma se souvienne de toi.','Une question courte et précise donne de meilleures réponses.','Ferme tes autres applis pour libérer de la mémoire.','Écris 12×7 : la calculatrice répond instantanément.','Essaie /quiz histoire pour t’entraîner avec des questions.','Touche 📇 sous une réponse pour créer une fiche de révision.'];
+var TIPS_DEV=['Demande à Gemma d’expliquer ton code ligne par ligne.','Colle une erreur et demande : « qu’est-ce que ça veut dire ? ».','Choisis la personnalité Programmeur pour des réponses plus techniques.','Essaie /quiz python pour réviser en jouant.'];
+function renderDaily(){let e=document.getElementById('daily');if(!e){e=document.createElement('div');e.id='daily';e.className='daily glass';const w=$('welcome');if(w)w.appendChild(e);}
   const pool=/python|code|program|dev/.test(memText().toLowerCase())?TIPS_DEV:TIPS;e.innerHTML='<b>💡 Astuce du jour</b><br>'+pool[new Date().getDate()%pool.length]+'<br><small>🔥 Série : '+streak()+' jour(s)</small>';}
 function decorate(c){c.querySelectorAll('pre').forEach(p=>{const b=document.createElement('button');b.className='copy-code';b.textContent='Copier';b.onclick=()=>{const t=p.childNodes[0].textContent;A?A.copy(t):navigator.clipboard&&navigator.clipboard.writeText(t);};p.appendChild(b);});}
-const cardsGet=()=>{try{return JSON.parse(localStorage.getItem('leybotdy_cards')||'[]')}catch(_){return[]}};
+function cardsGet(){try{return JSON.parse(localStorage.getItem('leybotdy_cards')||'[]')}catch(_){return[]}}
 function cardAdd(q,a,star){const c=cardsGet();c.push({q:q.slice(0,200),a:a.slice(0,900),star:!!star});localStorage.setItem('leybotdy_cards',JSON.stringify(c.slice(-50)));renderCards();showToast(star?'Ajouté aux favoris ⭐':'Fiche créée 📇');}
 function renderCards(){const l=$('cardList');if(!l)return;l.innerHTML='';const c=cardsGet();if(!c.length){l.innerHTML='<div class="empty-history">Rien pour l’instant.</div>';return;}
   c.map((k,i)=>[k,i]).reverse().forEach(([k,i])=>{const d=document.createElement('details');d.className='card-row';const s=document.createElement('summary');s.textContent=(k.star?'⭐ ':'📇 ')+(k.q||k.a).slice(0,70);const p=document.createElement('div');p.textContent=k.a;const x=document.createElement('button');x.className='hist-del';x.textContent='✕';
     x.onclick=()=>{const b=cardsGet();b.splice(i,1);localStorage.setItem('leybotdy_cards',JSON.stringify(b));renderCards();};d.append(s,p,x);l.appendChild(d);});}
-const prGet=()=>{try{return JSON.parse(localStorage.getItem('leybotdy_prompts')||'[]')}catch(_){return[]}};
+function prGet(){try{return JSON.parse(localStorage.getItem('leybotdy_prompts')||'[]')}catch(_){return[]}}
 function renderPrompts(){const l=$('prList');if(l){l.innerHTML='';prGet().forEach((p,i)=>{const r=document.createElement('div');r.className='mem-row';const sp=document.createElement('span');sp.textContent=p;const x=document.createElement('button');x.className='hist-del';x.textContent='✕';
     x.onclick=()=>{const b=prGet();b.splice(i,1);localStorage.setItem('leybotdy_prompts',JSON.stringify(b));renderPrompts();};r.append(sp,x);l.appendChild(r);});}
   const ch=$('chips');if(!ch)return;ch.querySelectorAll('.mine').forEach(e=>e.remove());
   prGet().slice(0,6).forEach(p=>{const b=document.createElement('button');b.className='mine';b.textContent='📌 '+p.slice(0,18);b.onclick=()=>{$('messageInput').value=p;switchView('chat');$('messageInput').focus();};ch.appendChild(b);});}
 $('prAdd').onclick=()=>{const i=$('prInput'),v=i.value.trim();if(!v)return;const b=prGet();b.push(v.slice(0,200));localStorage.setItem('leybotdy_prompts',JSON.stringify(b.slice(-12)));i.value='';renderPrompts();};
-const ramInfo=()=>A&&A.freeMb?A.freeMb():-1;
+function ramInfo(){return A&&A.freeMb?A.freeMb():-1;}
 function ramCheck(){const f=ramInfo(),e=$('ramVal');if(e)e.textContent=f<0?'—':f+' Mo libres';return f;}
 setInterval(()=>{if(!$('settingsView').classList.contains('hidden'))ramCheck();},3000);
 sel('thrSel','leybotdy_thr','4',()=>{if(A){A.setThreads(+localStorage.getItem('leybotdy_thr'));showToast('Moteur relancé…');A.reload();}});
@@ -246,7 +248,7 @@ function setLiveState(s){const o=$('liveOrb');if(o)o.className='live-orb '+s;con
 function liveListen(){if(!liveOn)return;setLiveState('listen');$('liveText').textContent='';A.listen();}
 function liveSend(txt){livePos=0;livePending=0;liveFinishing=false;setLiveState('think');$('liveText').textContent=txt;$('liveAns').textContent='';$('messageInput').value=txt;$('composer').dispatchEvent(new Event('submit',{cancelable:true}));}
 function liveStart(){if(!A||!A.speechAvailable()){showToast('Reconnaissance vocale indisponible : installe l’appli Google et le pack vocal français.');return;}
-  liveOn=true;switchView('chat');$('live').classList.remove('hidden');liveListen();}
+  liveOn=true;switchView('chat');$('live').classList.remove('hidden');const G=['Salut, comment tu vas ? Tu veux commencer par quoi ?','Salut, je suis ton IA locale. Tu veux commencer par quoi ?'];liveSay(G[Math.floor(Math.random()*G.length)]);}
 function liveStop(){liveOn=false;if(A){A.stopListen();A.stopSpeak();}if(ctrl)ctrl.abort();$('live').classList.add('hidden');}
 function paintMic(){const b=$('micBtn');if(b)b.classList.toggle('on',micOn);}
 window.onSpeech=(type,txt)=>{
